@@ -29,11 +29,15 @@ import net.minecraft.util.math.*;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.biome.Biome;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.entity.player.ItemFishedEvent;
 import net.minecraftforge.fml.common.registry.IThrowableEntity;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class EntityCustomFishHook extends EntityFishHook implements IThrowableEntity {
@@ -457,7 +461,7 @@ public class EntityCustomFishHook extends EntityFishHook implements IThrowableEn
     public int handleHookRetraction() {
         if (!this.world.isRemote && this.angler != null) {
             int i = 0;
-
+            ItemFishedEvent event = null;
             if (this.caughtEntity != null) {
                 this.bringInHookedEntity();
                 this.world.setEntityState(this, (byte) 31);
@@ -507,6 +511,12 @@ public class EntityCustomFishHook extends EntityFishHook implements IThrowableEn
                     }
 
                     if (!fishLoot.isEmpty()) {
+                        event = new ItemFishedEvent(new ArrayList<>(Collections.singleton(fishLoot)), this.inGround ? 2 : 1, this);
+                        MinecraftForge.EVENT_BUS.post(event);
+                        if (event.isCanceled()) {
+                            this.setDead();
+                            return event.getRodDamage();
+                        }
                         EntityItem entityitem = new EntityItem(this.world, this.posX, this.posY, this.posZ, fishLoot);
                         double d0 = this.angler.posX - this.posX;
                         double d1 = this.angler.posY - this.posY;
